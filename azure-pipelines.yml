@@ -42,7 +42,7 @@ stages:
       displayName: 'Build Backend'
       inputs:
         command: 'build'
-        # CORRECTED: This path now uses the exact case from your log output.
+        # This path now uses the exact case from your log output.
         projects: 'Movies.API/Movies.API.csproj'
         arguments: '--configuration $(buildConfiguration)'
 
@@ -106,18 +106,23 @@ stages:
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
 
-  - deployment: Deploy_Frontend # Using a 'deployment' job is best practice
+  - job: Deploy_Frontend # Switched to a standard 'job' for consistency
     displayName: 'Deploy Frontend to Static Web App'
-    environment: 'production' # Tracks deployments to an environment
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: AzureStaticWebApp@0
-            displayName: 'Deploy Frontend'
-            inputs:
-              # This now securely uses the deployment token from your variable group.
-              azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-              app_location: '$(Pipeline.Workspace)/frontend'
-              api_location: '' # Our API is deployed separately
-              output_location: ''
+    steps:
+      # CORRECTED: We will explicitly download the artifact to a predictable location.
+    - task: DownloadBuildArtifacts@1
+      displayName: 'Download Frontend Artifact'
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'frontend'
+        downloadPath: '$(System.ArtifactsDirectory)/frontend'
+
+    - task: AzureStaticWebApp@0
+      displayName: 'Deploy Frontend'
+      inputs:
+        azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
+        # CORRECTED: This now points to the clear and explicit download location.
+        app_location: '$(System.ArtifactsDirectory)/frontend'
+        api_location: '' # Our API is deployed separately
+        output_location: ''
