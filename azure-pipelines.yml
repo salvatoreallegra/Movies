@@ -126,3 +126,4 @@ stages:
               app_location: '$(Pipeline.Workspace)/frontend'
               api_location: '' # Our API is deployed separately
               output_location: ''
+
