@@ -36,7 +36,7 @@ stages:
       inputs:
         command: 'build'
         # Corrected: This wildcard pattern finds your specific .csproj file anywhere in the repo.
-        projects: '**/*Movies.Api.csproj'
+        projects: 'Movies.API/Movies.API.csproj'
         arguments: '--configuration $(buildConfiguration)'
 
     - task: DotNetCoreCLI@2
