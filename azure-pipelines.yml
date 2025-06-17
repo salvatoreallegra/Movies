@@ -12,7 +12,7 @@ variables:
   buildConfiguration: 'Release'
 
   # --- Azure Details (REPLACE THESE WITH YOUR ACTUAL RESOURCE NAMES) ---
-  azureSubscription: 'Pay-As-You-Go' # The name of your Service Connection.
+  azureSubscription: 'Azure' # The name of your Service Connection.
   backendAppName: 'AngularDotNetMovies' # The name of your .NET App Service.
   frontendAppName: 'AngularFrontEnd' # The name of your Static Web App.
   azureResourceGroup: 'devops'
@@ -91,7 +91,7 @@ stages:
     - task: AzureWebApp@1
       displayName: 'Deploy Backend'
       inputs:
-        azureSubscription: 'Pay-As-You-Go'
+        azureSubscription: 'Azure'
         appType: 'webAppLinux'
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
