@@ -12,8 +12,6 @@ variables:
     value: 'Azure'  # Azure DevOps service connection name
   - name: backendAppName
     value: 'AngularDotNetMovies'
-  - name: frontendAppName
-    value: 'AngularFrontEnd'  # Name of your Static Web App resource
   - name: azureResourceGroup
     value: 'devops'
 
@@ -50,25 +48,6 @@ stages:
         PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend'
         ArtifactName: 'backend'
 
-  - job: Build_Frontend
-    displayName: 'Build Angular Frontend'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '19.x'
-
-    - script: |
-        cd Movies.Frontend
-        npm install
-        npm run build -- --configuration production
-      displayName: 'Install and Build Angular'
-
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish Frontend Artifact'
-      inputs:
-        targetPath: 'Movies.Frontend/dist/movies.frontend'
-        artifact: 'frontend'
-
 - stage: Deploy
   displayName: 'Deploy Stage'
   dependsOn: Build
@@ -92,26 +71,3 @@ stages:
         appType: 'webAppLinux'
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
-
-  - job: Deploy_Frontend
-    displayName: 'Deploy Frontend via Azure CLI'
-    steps:
-    - task: DownloadPipelineArtifact@2
-      displayName: 'Download Frontend Artifact'
-      inputs:
-        artifact: 'frontend'
-        path: '$(Pipeline.Workspace)/frontend'
-
-    - task: AzureCLI@2
-      displayName: 'Upload to Azure Static Web App'
-      inputs:
-        azureSubscription: '$(azureSubscription)'
-        scriptType: bash
-        scriptLocation: inlineScript
-        inlineScript: |
-          az extension add --name "staticwebapp" --yes
-          az staticwebapp upload \
-            --name "$(frontendAppName)" \
-            --resource-group "$(azureResourceGroup)" \
-            --source "$(Pipeline.Workspace)/frontend" \
-            --token "$(SWA_DEPLOYMENT_TOKEN)"
