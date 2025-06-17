@@ -12,9 +12,9 @@ variables:
   buildConfiguration: 'Release'
 
   # --- Azure Details (REPLACE THESE WITH YOUR ACTUAL RESOURCE NAMES) ---
-  azureSubscription: 'Azure' # The name of your Service Connection.
-  backendAppName: 'AngularDotNetMovies' # The name of your .NET App Service.
-  frontendAppName: 'AngularFrontEnd' # The name of your Static Web App.
+  azureSubscription: 'Azure'                 # This MUST be the name of your Azure Resource Manager service connection.
+  backendAppName: 'AngularDotNetMovies'      # The name of your .NET App Service in Azure.
+  frontendAppName: 'AngularFrontEnd'         # The name of your Static Web App in Azure.
   azureResourceGroup: 'devops'
 
 # The pipeline is broken into logical stages.
@@ -35,7 +35,8 @@ stages:
       displayName: 'Build Backend'
       inputs:
         command: 'build'
-        projects: '**/*Movies.Api.csproj' # Update if your project name is different
+        # Corrected: This wildcard pattern finds your specific .csproj file anywhere in the repo.
+        projects: '**/*Movies.Api.csproj'
         arguments: '--configuration $(buildConfiguration)'
 
     - task: DotNetCoreCLI@2
@@ -61,6 +62,7 @@ stages:
         versionSpec: '19.x'
 
     - script: |
+        # Corrected: Change directory into your specific Angular project folder.
         cd Movies.Frontend
         npm install
         npm run build -- --configuration production
@@ -69,7 +71,9 @@ stages:
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Frontend Artifact'
       inputs:
-        PathtoPublish: 'Movies.Frontend/dist/movies' # The output folder from 'ng build'
+        # Corrected: This path now points to the correct build output folder
+        # as defined by your angular.json (project name is 'Movies.Frontend').
+        PathtoPublish: 'Movies.Frontend/dist/movies.frontend'
         ArtifactName: 'frontend'
 
 - stage: Deploy
@@ -91,7 +95,7 @@ stages:
     - task: AzureWebApp@1
       displayName: 'Deploy Backend'
       inputs:
-        azureSubscription: 'Azure'
+        azureSubscription: '$(azureSubscription)'
         appType: 'webAppLinux'
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
@@ -103,12 +107,11 @@ stages:
       runOnce:
         deploy:
           steps:
-          # A deployment job automatically downloads pipeline artifacts.
-          # The manual 'DownloadBuildArtifacts' task is not needed here.
           - task: AzureStaticWebApp@0
             displayName: 'Deploy Frontend'
             inputs:
               azure_static_web_apps_api_token: $(deployment_token)
-              app_location: '$(Pipeline.Workspace)/frontend' # The artifact is downloaded to this default location
+              # This path correctly points to the root of the downloaded 'frontend' artifact.
+              app_location: '$(Pipeline.Workspace)/frontend'
               api_location: '' # Our API is deployed separately
-              output_location: '' # The Angular build output is already at the root of the app_location
+              output_location: '' # The Angular build output is already at the root of the artifact
