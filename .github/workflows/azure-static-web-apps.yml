@@ -13,12 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Build Angular app
+      - name: Build Angular
         run: |
           cd Movies.Frontend
           npm ci
@@ -29,6 +29,7 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          skip_app_build: true
           action: "upload"
+          skip_app_build: true
           app_location: "Movies.Frontend/dist/movies.frontend"
+          output_location: ""  # Not needed when uploading pre-built files
