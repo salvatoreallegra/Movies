@@ -15,19 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        working-directory: Movies.Frontend
-        run: npm install
-
-      - name: Build Angular app
-        working-directory: Movies.Frontend
-        run: npm run build -- --configuration production
-
       - name: Deploy to Azure Static Web App
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -36,4 +23,3 @@ jobs:
           action: "upload"
           app_location: "Movies.Frontend"
           output_location: "dist/movies.frontend"
-          skip_app_build: true
