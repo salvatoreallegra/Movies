@@ -104,13 +104,13 @@ stages:
             displayName: 'Download Frontend Artifact'
             inputs:
               artifact: 'frontend'
-              path: 'Movies.Frontend/dist'  # ✅ Unpacks here so full path is restored
+              path: '$(Pipeline.Workspace)/frontend'  # ✅ REAL extracted location
 
           - task: AzureStaticWebApp@0
             displayName: 'Deploy Frontend'
             inputs:
               azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-              app_location: 'Movies.Frontend/dist/movies.frontend'  # ✅ Matches angular.json
+              app_location: '$(Pipeline.Workspace)/frontend'  # ✅ Folder with index.html
               api_location: ''
-              output_location: '/'  # ✅ Final files already here
-              skip_app_build: true  # ✅ Prevent Oryx auto-build
+              output_location: '/'
+              skip_app_build: true
