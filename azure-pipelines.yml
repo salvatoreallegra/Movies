@@ -8,23 +8,19 @@ pool:
 
 # Define variables to make the pipeline reusable.
 variables:
-  # Link our secret variable group to the pipeline
   - group: Production-Secrets
 
-  # Define pipeline-specific variables
   - name: buildConfiguration
     value: 'Release'
   - name: azureSubscription
-    value: 'Azure'                 # This MUST be the name of your Azure Resource Manager service connection.
+    value: 'Azure'                 # Azure Resource Manager service connection name.
   - name: backendAppName
-    value: 'AngularDotNetMovies'      # The name of your .NET App Service in Azure.
+    value: 'AngularDotNetMovies'  # Name of your .NET App Service.
   - name: frontendAppName
-    value: 'AngularFrontEnd'         # The name of your Static Web App in Azure.
+    value: 'AngularFrontEnd'      # Name of your Static Web App in Azure.
   - name: azureResourceGroup
     value: 'devops'
 
-
-# The pipeline is broken into logical stages.
 stages:
 - stage: Build
   displayName: 'Build Stage'
@@ -42,7 +38,6 @@ stages:
       displayName: 'Build Backend'
       inputs:
         command: 'build'
-        # This path now uses the exact case from your log output.
         projects: 'Movies.API/Movies.API.csproj'
         arguments: '--configuration $(buildConfiguration)'
 
@@ -69,22 +64,14 @@ stages:
         versionSpec: '19.x'
 
     - script: |
-        # Change directory into your specific Angular project folder.
         cd Movies.Frontend
         npm install
         npm run build -- --configuration production
       displayName: 'Install Dependencies and Build'
 
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publish Frontend Artifact'
-      inputs:
-        # This path points to the build output folder as defined by your angular.json
-        PathtoPublish: 'Movies.Frontend/dist/movies.frontend'
-        ArtifactName: 'frontend'
-
 - stage: Deploy
   displayName: 'Deploy Stage'
-  dependsOn: Build # This stage only runs if the Build stage succeeds.
+  dependsOn: Build
   condition: succeeded()
   jobs:
   - job: Deploy_Backend
@@ -106,23 +93,17 @@ stages:
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
 
-  # CORRECTED AND FINAL: This uses the 'deployment' job type, which is best practice.
-  # It automatically handles downloading the artifact to the correct location.
   - deployment: Deploy_Frontend
     displayName: 'Deploy Frontend to Static Web App'
-    environment: 'production' # Tracks deployments to an environment
+    environment: 'production'
     strategy:
       runOnce:
         deploy:
           steps:
-          # The manual DownloadBuildArtifacts task is not needed here.
-          # A 'deployment' job automatically downloads the artifact named 'frontend'.
           - task: AzureStaticWebApp@0
             displayName: 'Deploy Frontend'
             inputs:
               azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-              # CORRECTED AND FINAL: This points to the default workspace location
-              # where the 'frontend' artifact is automatically placed.
-              app_location: '$(Pipeline.Workspace)/frontend'
-              api_location: '' # Our API is deployed separately
-              output_location: ''
+              app_location: 'Movies.Frontend/dist/movies.frontend'  # ← Corrected path to Angular output
+              api_location: ''  # No API here, since .NET is deployed separately
+              output_location: ''  # Already built
