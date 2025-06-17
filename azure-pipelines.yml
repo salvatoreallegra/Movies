@@ -8,14 +8,21 @@ pool:
 
 # Define variables to make the pipeline reusable.
 variables:
-  # --- Build Configuration ---
-  buildConfiguration: 'Release'
+  # Link our secret variable group to the pipeline
+  - group: Production-Secrets
 
-  # --- Azure Details (REPLACE THESE WITH YOUR ACTUAL RESOURCE NAMES) ---
-  azureSubscription: 'Azure'                 # This MUST be the name of your Azure Resource Manager service connection.
-  backendAppName: 'AngularDotNetMovies'      # The name of your .NET App Service in Azure.
-  frontendAppName: 'AngularFrontEnd'         # The name of your Static Web App in Azure.
-  azureResourceGroup: 'devops'
+  # Define pipeline-specific variables
+  - name: buildConfiguration
+    value: 'Release'
+  - name: azureSubscription
+    value: 'Azure'                 # This MUST be the name of your Azure Resource Manager service connection.
+  - name: backendAppName
+    value: 'AngularDotNetMovies'      # The name of your .NET App Service in Azure.
+  - name: frontendAppName
+    value: 'AngularFrontEnd'         # The name of your Static Web App in Azure.
+  - name: azureResourceGroup
+    value: 'devops'
+
 
 # The pipeline is broken into logical stages.
 stages:
@@ -35,8 +42,8 @@ stages:
       displayName: 'Build Backend'
       inputs:
         command: 'build'
-        # Corrected: This wildcard pattern finds your specific .csproj file anywhere in the repo.
-        projects: 'Movies.API/Movies.API.csproj'
+        # This uses a direct path to your project file.
+        projects: 'Movies.Api/Movies.Api.csproj'
         arguments: '--configuration $(buildConfiguration)'
 
     - task: DotNetCoreCLI@2
@@ -62,7 +69,7 @@ stages:
         versionSpec: '19.x'
 
     - script: |
-        # Corrected: Change directory into your specific Angular project folder.
+        # Change directory into your specific Angular project folder.
         cd Movies.Frontend
         npm install
         npm run build -- --configuration production
@@ -71,8 +78,7 @@ stages:
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Frontend Artifact'
       inputs:
-        # Corrected: This path now points to the correct build output folder
-        # as defined by your angular.json (project name is 'Movies.Frontend').
+        # This path points to the build output folder as defined by your angular.json
         PathtoPublish: 'Movies.Frontend/dist/movies.frontend'
         ArtifactName: 'frontend'
 
@@ -110,8 +116,8 @@ stages:
           - task: AzureStaticWebApp@0
             displayName: 'Deploy Frontend'
             inputs:
-              azure_static_web_apps_api_token: $(deployment_token)
-              # This path correctly points to the root of the downloaded 'frontend' artifact.
+              # This now securely uses the deployment token from your variable group.
+              azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
               app_location: '$(Pipeline.Workspace)/frontend'
               api_location: '' # Our API is deployed separately
-              output_location: '' # The Angular build output is already at the root of the artifact
+              output_location: ''
