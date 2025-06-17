@@ -9,11 +9,11 @@ variables:
   - name: buildConfiguration
     value: 'Release'
   - name: azureSubscription
-    value: 'Azure'                 # Azure Resource Manager service connection name
+    value: 'Azure'
   - name: backendAppName
-    value: 'AngularDotNetMovies'  # Name of your .NET App Service
+    value: 'AngularDotNetMovies'
   - name: frontendAppName
-    value: 'AngularFrontEnd'      # Name of your Static Web App in Azure
+    value: 'AngularFrontEnd'
   - name: azureResourceGroup
     value: 'devops'
 
@@ -104,13 +104,13 @@ stages:
             displayName: 'Download Frontend Artifact'
             inputs:
               artifact: 'frontend'
-              path: 'Movies.Frontend/dist/movies.frontend'
+              path: 'Movies.Frontend/dist'  # ✅ Unpacks here so full path is restored
 
           - task: AzureStaticWebApp@0
             displayName: 'Deploy Frontend'
             inputs:
               azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-              app_location: 'Movies.Frontend/dist/movies.frontend'  # relative to repo root
+              app_location: 'Movies.Frontend/dist/movies.frontend'  # ✅ Matches angular.json
               api_location: ''
-              output_location: '/'                                  # tells Azure "this folder is ready"
-              skip_app_build: true                                   # prevents Oryx from trying to rebuild
+              output_location: '/'  # ✅ Final files already here
+              skip_app_build: true  # ✅ Prevent Oryx auto-build
