@@ -106,23 +106,23 @@ stages:
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
 
-  - job: Deploy_Frontend # Switched to a standard 'job' for consistency
+  # CORRECTED: This section now uses the 'deployment' job type, which is best practice
+  # and handles artifact paths correctly.
+  - deployment: Deploy_Frontend
     displayName: 'Deploy Frontend to Static Web App'
-    steps:
-      # CORRECTED: We will explicitly download the artifact to a predictable location.
-    - task: DownloadBuildArtifacts@1
-      displayName: 'Download Frontend Artifact'
-      inputs:
-        buildType: 'current'
-        downloadType: 'single'
-        artifactName: 'frontend'
-        downloadPath: '$(System.ArtifactsDirectory)/frontend'
-
-    - task: AzureStaticWebApp@0
-      displayName: 'Deploy Frontend'
-      inputs:
-        azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-        # CORRECTED: This now points to the clear and explicit download location.
-        app_location: '$(System.ArtifactsDirectory)/frontend'
-        api_location: '' # Our API is deployed separately
-        output_location: ''
+    environment: 'production' # Tracks deployments to an environment
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          # The manual DownloadBuildArtifacts task is no longer needed here.
+          # A 'deployment' job automatically downloads the artifact.
+          - task: AzureStaticWebApp@0
+            displayName: 'Deploy Frontend'
+            inputs:
+              azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
+              # This now correctly points to the default location where a deployment
+              # job places the downloaded artifact.
+              app_location: '$(Pipeline.Workspace)/frontend'
+              api_location: '' # Our API is deployed separately
+              output_location: ''
