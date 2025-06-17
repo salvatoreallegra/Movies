@@ -1,33 +1,39 @@
-name: Azure Static Web Apps CI/CD
+name: Deploy Angular Frontend to Azure Static Web App
 
 on:
   push:
     branches:
-      - main  # or your deployment branch
+      - main
+  workflow_dispatch:
 
 jobs:
-  build_and_deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    name: Build and Deploy Angular Frontend
+    name: Build and Deploy Angular App
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install Dependencies and Build
-        run: |
-          cd Movies.Frontend
-          npm install
-          npm run build -- --configuration production
+      - name: Install dependencies
+        working-directory: Movies.Frontend
+        run: npm install
+
+      - name: Build Angular app
+        working-directory: Movies.Frontend
+        run: npm run build -- --configuration production
 
       - name: Deploy to Azure Static Web App
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # used for GitHub integrations (e.g., PR comments)
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "Movies.Frontend/dist/movies.frontend"
+          app_location: "Movies.Frontend"
+          output_location: "dist/movies.frontend"
           skip_app_build: true
