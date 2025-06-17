@@ -6,28 +6,29 @@ on:
       - main
 
 jobs:
-  build_and_deploy:
+  build_and_deploy_job:
     runs-on: ubuntu-latest
-    name: Build and Deploy Angular App
-
+    name: Build and Deploy Angular to Azure Static Web App
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '19'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '19'
 
-    - name: Build Angular
-      working-directory: Movies.Frontend
-      run: |
-        npm install
-        npm run build -- --configuration production
+      - name: Build Angular App
+        run: |
+          cd Movies.Frontend
+          npm install
+          npm run build -- --configuration production
 
-    - name: Deploy to Azure Static Web Apps
-      uses: Azure/static-web-apps-deploy@v1
-      with:
-        azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-        action: upload
-        app_location: Movies.Frontend
-        output_location: dist/movies.frontend
-        skip_app_build: true
+      - name: Deploy to Azure Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "Movies.Frontend"
+          output_location: "dist/movies.frontend"
