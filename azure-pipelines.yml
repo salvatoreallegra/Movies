@@ -1,73 +1,90 @@
 trigger:
-- main
+  branches:
+    include:
+      - main
+      - dev
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
 
 variables:
   - group: Production-Secrets
   - name: buildConfiguration
-    value: 'Release'
+    value: "Release"
   - name: azureSubscription
-    value: 'Azure'  # Azure DevOps service connection name
+    value: "Azure" # Azure DevOps service connection name
   - name: backendAppName
-    value: 'AngularDotNetMovies'
+    value: "AngularDotNetMovies"
   - name: azureResourceGroup
-    value: 'devops'
+    value: "devops"
 
 stages:
-- stage: Build
-  displayName: 'Build Stage'
-  jobs:
-  - job: Build_Backend
-    displayName: 'Build .NET Backend'
-    steps:
-    - task: UseDotNet@2
-      inputs:
-        packageType: 'sdk'
-        version: '9.x'
+  - stage: Build
+    displayName: "Build Stage"
+    jobs:
+      - job: Build_Backend
+        displayName: "Build .NET Backend"
+        steps:
+          - task: UseDotNet@2
+            inputs:
+              packageType: "sdk"
+              version: "9.x"
 
-    - task: DotNetCoreCLI@2
-      displayName: 'Build Backend'
-      inputs:
-        command: 'build'
-        projects: 'Movies.API/Movies.API.csproj'
-        arguments: '--configuration $(buildConfiguration)'
+          - task: DotNetCoreCLI@2
+            displayName: "Build Backend"
+            inputs:
+              command: "build"
+              projects: "Movies.API/Movies.API.csproj"
+              arguments: "--configuration $(buildConfiguration)"
 
-    - task: DotNetCoreCLI@2
-      displayName: 'Publish Backend'
-      inputs:
-        command: 'publish'
-        publishWebProjects: true
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/backend'
-        zipAfterPublish: true
+          - task: DotNetCoreCLI@2
+            displayName: "Run Unit Tests"
+            inputs:
+              command: "test"
+              projects: "**/*Tests.csproj" # Update this if your test project has a different naming pattern
+              arguments: "--configuration $(buildConfiguration) --no-build --logger trx"
 
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publish Backend Artifact'
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend'
-        ArtifactName: 'backend'
+          - task: PublishTestResults@2
+            displayName: "Publish Test Results"
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: "VSTest"
+              testResultsFiles: "**/TestResults/*.trx"
 
-- stage: Deploy
-  displayName: 'Deploy Stage'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - job: Deploy_Backend
-    displayName: 'Deploy Backend to App Service'
-    steps:
-    - task: DownloadBuildArtifacts@1
-      displayName: 'Download Backend Artifact'
-      inputs:
-        buildType: 'current'
-        downloadType: 'single'
-        artifactName: 'backend'
-        downloadPath: '$(System.ArtifactsDirectory)'
+          - task: DotNetCoreCLI@2
+            displayName: "Publish Backend"
+            inputs:
+              command: "publish"
+              publishWebProjects: true
+              arguments: "--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/backend"
+              zipAfterPublish: true
 
-    - task: AzureWebApp@1
-      displayName: 'Deploy Backend'
-      inputs:
-        azureSubscription: '$(azureSubscription)'
-        appType: 'webAppLinux'
-        appName: '$(backendAppName)'
-        package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish Backend Artifact"
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)/backend"
+              ArtifactName: "backend"
+
+  - stage: Deploy
+    displayName: "Deploy Stage"
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Deploy_Backend
+        displayName: "Deploy Backend to App Service"
+        steps:
+          - task: DownloadBuildArtifacts@1
+            displayName: "Download Backend Artifact"
+            inputs:
+              buildType: "current"
+              downloadType: "single"
+              artifactName: "backend"
+              downloadPath: "$(System.ArtifactsDirectory)"
+
+          - task: AzureWebApp@1
+            displayName: "Deploy Backend"
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              appType: "webAppLinux"
+              appName: "$(backendAppName)"
+              package: "$(System.ArtifactsDirectory)/backend/**/*.zip"
