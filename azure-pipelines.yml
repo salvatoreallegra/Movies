@@ -106,28 +106,23 @@ stages:
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
 
-  # CORRECTED AND FINAL: This uses a standard 'job' and is explicit about file paths.
-  # This removes the ambiguity that was causing the previous errors.
-  - job: Deploy_Frontend
+  # CORRECTED AND FINAL: This uses the 'deployment' job type, which is best practice.
+  # It automatically handles downloading the artifact to the correct location.
+  - deployment: Deploy_Frontend
     displayName: 'Deploy Frontend to Static Web App'
-    steps:
-    # Step 1: Explicitly download the frontend artifact.
-    - task: DownloadBuildArtifacts@1
-      displayName: 'Download Frontend Artifact'
-      inputs:
-        buildType: 'current'
-        downloadType: 'single'
-        artifactName: 'frontend'
-        # Download it to a folder named 'frontend_dist' to be explicit
-        downloadPath: '$(System.ArtifactsDirectory)/frontend_dist'
-
-    # Step 2: Deploy from that explicit location.
-    - task: AzureStaticWebApp@0
-      displayName: 'Deploy Frontend'
-      inputs:
-        azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-        # CORRECTED AND FINAL: This path now points to the explicit download
-        # location, which contains the build output from your Angular app.
-        app_location: '$(System.ArtifactsDirectory)/frontend_dist'
-        api_location: '' # Our API is deployed separately
-        output_location: ''
+    environment: 'production' # Tracks deployments to an environment
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          # The manual DownloadBuildArtifacts task is not needed here.
+          # A 'deployment' job automatically downloads the artifact named 'frontend'.
+          - task: AzureStaticWebApp@0
+            displayName: 'Deploy Frontend'
+            inputs:
+              azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
+              # CORRECTED AND FINAL: This points to the default workspace location
+              # where the 'frontend' artifact is automatically placed.
+              app_location: '$(Pipeline.Workspace)/frontend'
+              api_location: '' # Our API is deployed separately
+              output_location: ''
