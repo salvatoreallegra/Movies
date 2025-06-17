@@ -69,6 +69,12 @@ stages:
         npm run build -- --configuration production
       displayName: 'Install Dependencies and Build'
 
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish Frontend Artifact'
+      inputs:
+        targetPath: 'Movies.Frontend/dist/movies.frontend'
+        artifact: 'frontend'
+
 - stage: Deploy
   displayName: 'Deploy Stage'
   dependsOn: Build
@@ -100,10 +106,16 @@ stages:
       runOnce:
         deploy:
           steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download Frontend Artifact'
+            inputs:
+              artifact: 'frontend'
+              path: '$(Pipeline.Workspace)/frontend'
+
           - task: AzureStaticWebApp@0
             displayName: 'Deploy Frontend'
             inputs:
               azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-              app_location: 'Movies.Frontend/dist/movies.frontend'  # ← Corrected path to Angular output
-              api_location: ''  # No API here, since .NET is deployed separately
-              output_location: ''  # Already built
+              app_location: '$(Pipeline.Workspace)/frontend'
+              api_location: ''
+              output_location: ''
