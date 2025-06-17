@@ -35,7 +35,7 @@ stages:
       displayName: 'Build Backend'
       inputs:
         command: 'build'
-        projects: 'Movies.Api.csproj' # Update if your project name is different
+        projects: '**/*Movies.Api.csproj' # Update if your project name is different
         arguments: '--configuration $(buildConfiguration)'
 
     - task: DotNetCoreCLI@2
