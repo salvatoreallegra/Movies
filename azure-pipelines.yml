@@ -106,9 +106,12 @@ stages:
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
 
+  # CORRECTED AND FINAL: This uses a standard 'job' and is explicit about file paths.
+  # This removes the ambiguity that was causing the previous errors.
   - job: Deploy_Frontend
     displayName: 'Deploy Frontend to Static Web App'
     steps:
+    # Step 1: Explicitly download the frontend artifact.
     - task: DownloadBuildArtifacts@1
       displayName: 'Download Frontend Artifact'
       inputs:
@@ -118,6 +121,7 @@ stages:
         # Download it to a folder named 'frontend_dist' to be explicit
         downloadPath: '$(System.ArtifactsDirectory)/frontend_dist'
 
+    # Step 2: Deploy from that explicit location.
     - task: AzureStaticWebApp@0
       displayName: 'Deploy Frontend'
       inputs:
