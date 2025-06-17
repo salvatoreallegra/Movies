@@ -104,13 +104,18 @@ stages:
             displayName: 'Download Frontend Artifact'
             inputs:
               artifact: 'frontend'
-              path: '$(Pipeline.Workspace)/frontend'  # ✅ REAL extracted location
+              path: '$(Build.SourcesDirectory)/temp-artifact'  # download here
+
+          - script: |
+              mkdir -p $(Build.SourcesDirectory)/Movies.Frontend/dist/movies.frontend
+              cp -r $(Build.SourcesDirectory)/temp-artifact/* $(Build.SourcesDirectory)/Movies.Frontend/dist/movies.frontend/
+            displayName: 'Copy Frontend Files Into Repo-Relative Location'
 
           - task: AzureStaticWebApp@0
             displayName: 'Deploy Frontend'
             inputs:
               azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-              app_location: '$(Pipeline.Workspace)/frontend'  # ✅ Folder with index.html
+              app_location: 'Movies.Frontend/dist/movies.frontend'  # relative to repo root
               api_location: ''
               output_location: '/'
               skip_app_build: true
