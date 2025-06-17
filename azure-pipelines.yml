@@ -9,11 +9,11 @@ variables:
   - name: buildConfiguration
     value: 'Release'
   - name: azureSubscription
-    value: 'Azure'
+    value: 'Azure'  # Azure DevOps service connection name
   - name: backendAppName
     value: 'AngularDotNetMovies'
   - name: frontendAppName
-    value: 'AngularFrontEnd'
+    value: 'AngularFrontEnd'  # Name of your Static Web App resource
   - name: azureResourceGroup
     value: 'devops'
 
@@ -93,29 +93,25 @@ stages:
         appName: '$(backendAppName)'
         package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
 
-  - deployment: Deploy_Frontend
-    displayName: 'Deploy Frontend to Static Web App'
-    environment: 'production'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: DownloadPipelineArtifact@2
-            displayName: 'Download Frontend Artifact'
-            inputs:
-              artifact: 'frontend'
-              path: '$(Build.SourcesDirectory)/temp-artifact'  # download here
+  - job: Deploy_Frontend
+    displayName: 'Deploy Frontend via Azure CLI'
+    steps:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download Frontend Artifact'
+      inputs:
+        artifact: 'frontend'
+        path: '$(Pipeline.Workspace)/frontend'
 
-          - script: |
-              mkdir -p $(Build.SourcesDirectory)/Movies.Frontend/dist/movies.frontend
-              cp -r $(Build.SourcesDirectory)/temp-artifact/* $(Build.SourcesDirectory)/Movies.Frontend/dist/movies.frontend/
-            displayName: 'Copy Frontend Files Into Repo-Relative Location'
-
-          - task: AzureStaticWebApp@0
-            displayName: 'Deploy Frontend'
-            inputs:
-              azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-              app_location: 'Movies.Frontend/dist/movies.frontend'  # relative to repo root
-              api_location: ''
-              output_location: '/'
-              skip_app_build: true
+    - task: AzureCLI@2
+      displayName: 'Upload to Azure Static Web App'
+      inputs:
+        azureSubscription: '$(azureSubscription)'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          az extension add --name "staticwebapp" --yes
+          az staticwebapp upload \
+            --name "$(frontendAppName)" \
+            --resource-group "$(azureResourceGroup)" \
+            --source "$(Pipeline.Workspace)/frontend" \
+            --token "$(SWA_DEPLOYMENT_TOKEN)"
