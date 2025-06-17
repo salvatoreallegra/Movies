@@ -1,0 +1,114 @@
+# This pipeline is triggered on pushes to the 'main' branch.
+trigger:
+- main
+
+# Use a Microsoft-hosted agent running Ubuntu.
+pool:
+  vmImage: 'ubuntu-latest'
+
+# Define variables to make the pipeline reusable.
+variables:
+  # --- Build Configuration ---
+  buildConfiguration: 'Release'
+
+  # --- Azure Details (REPLACE THESE WITH YOUR ACTUAL RESOURCE NAMES) ---
+  azureSubscription: 'Pay-As-You-Go' # The name of your Service Connection.
+  backendAppName: 'AngularDotNetMovies' # The name of your .NET App Service.
+  frontendAppName: 'AngularFrontEnd' # The name of your Static Web App.
+  azureResourceGroup: 'devops'
+
+# The pipeline is broken into logical stages.
+stages:
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+  - job: Build_Backend
+    displayName: 'Build .NET Backend'
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Use .NET 9 SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '9.x'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build Backend'
+      inputs:
+        command: 'build'
+        projects: 'Movies.Api.csproj' # Update if your project name is different
+        arguments: '--configuration $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish Backend'
+      inputs:
+        command: 'publish'
+        publishWebProjects: true
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/backend'
+        zipAfterPublish: true
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Backend Artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/backend'
+        ArtifactName: 'backend'
+
+  - job: Build_Frontend
+    displayName: 'Build Angular Frontend'
+    steps:
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: '19.x'
+
+    - script: |
+        cd Movies.Frontend
+        npm install
+        npm run build -- --configuration production
+      displayName: 'Install Dependencies and Build'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Frontend Artifact'
+      inputs:
+        PathtoPublish: 'Movies.Frontend/dist/Movies.Frontend' # The output folder from 'ng build'
+        ArtifactName: 'frontend'
+
+- stage: Deploy
+  displayName: 'Deploy Stage'
+  dependsOn: Build # This stage only runs if the Build stage succeeds.
+  condition: succeeded()
+  jobs:
+  - job: Deploy_Backend
+    displayName: 'Deploy Backend to App Service'
+    steps:
+    - task: DownloadBuildArtifacts@1
+      displayName: 'Download Backend Artifact'
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'backend'
+        downloadPath: '$(System.ArtifactsDirectory)'
+
+    - task: AzureWebApp@1
+      displayName: 'Deploy Backend'
+      inputs:
+        azureSubscription: 'Pay-As-You-Go'
+        appType: 'webAppLinux'
+        appName: '$(backendAppName)'
+        package: '$(System.ArtifactsDirectory)/backend/**/*.zip'
+
+  - deployment: Deploy_Frontend # Using a 'deployment' job is best practice
+    displayName: 'Deploy Frontend to Static Web App'
+    environment: 'production' # Tracks deployments to an environment
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          # A deployment job automatically downloads pipeline artifacts.
+          # The manual 'DownloadBuildArtifacts' task is not needed here.
+          - task: AzureStaticWebApp@0
+            displayName: 'Deploy Frontend'
+            inputs:
+              azure_static_web_apps_api_token: $(deployment_token)
+              app_location: '$(Pipeline.Workspace)/frontend' # The artifact is downloaded to this default location
+              api_location: '' # Our API is deployed separately
+              output_location: '' # The Angular build output is already at the root of the app_location
