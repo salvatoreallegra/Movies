@@ -109,26 +109,21 @@ stages:
   - job: Deploy_Frontend
     displayName: 'Deploy Frontend to Static Web App'
     steps:
-    # Step 1: Explicitly download the frontend artifact.
     - task: DownloadBuildArtifacts@1
       displayName: 'Download Frontend Artifact'
       inputs:
         buildType: 'current'
         downloadType: 'single'
         artifactName: 'frontend'
-        # Download it to a folder named 'frontend' inside the standard artifacts directory.
-        downloadPath: '$(System.ArtifactsDirectory)/frontend'
+        # Download it to a folder named 'frontend_dist' to be explicit
+        downloadPath: '$(System.ArtifactsDirectory)/frontend_dist'
 
-    # DEBUGGING STEP: This will show us the exact contents of the directory we are trying to deploy.
-    - script: ls -R $(System.ArtifactsDirectory)/frontend
-      displayName: 'List contents of downloaded artifact'
-
-    # Step 2: Deploy from that explicit location.
     - task: AzureStaticWebApp@0
       displayName: 'Deploy Frontend'
       inputs:
         azure_static_web_apps_api_token: '$(SWA_DEPLOYMENT_TOKEN)'
-        # This now points to the clear and explicit download location.
-        app_location: '$(System.ArtifactsDirectory)/frontend'
+        # CORRECTED AND FINAL: This path now points to the explicit download
+        # location, which contains the build output from your Angular app.
+        app_location: '$(System.ArtifactsDirectory)/frontend_dist'
         api_location: '' # Our API is deployed separately
-        output_location: '' # The build output is already at the root of the app_location.
+        output_location: ''
