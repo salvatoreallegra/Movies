@@ -32,10 +32,6 @@ stages:
   - job: Build_Backend
     displayName: 'Build .NET Backend'
     steps:
-    # STEP 1: DEBUGGING - This will show us the exact file structure.
-    - script: ls -R
-      displayName: 'List Files in Checkout Directory'
-
     - task: UseDotNet@2
       displayName: 'Use .NET 9 SDK'
       inputs:
@@ -46,8 +42,8 @@ stages:
       displayName: 'Build Backend'
       inputs:
         command: 'build'
-        # This uses a direct path to your project file.
-        projects: 'Movies.Api/Movies.Api.csproj'
+        # CORRECTED: This path now uses the exact case from your log output.
+        projects: 'Movies.API/Movies.API.csproj'
         arguments: '--configuration $(buildConfiguration)'
 
     - task: DotNetCoreCLI@2
