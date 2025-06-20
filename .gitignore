@@ -363,5 +363,29 @@ MigrationBackup/
 FodyWeavers.xsd
 # Node.js dependencies
 
+# Node.js
 **/node_modules/
 /dist
+# Angular
+
+/tmp/
+/out-tsc/
+/.angular/cache
+/coverage/
+/browser/
+/prerendered-routes.json
+
+# Node
+
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Editor specific
+.idea/
+.project
+.vscode/
+
+# OS specific
+.DS_Store
+Thumbs.db
